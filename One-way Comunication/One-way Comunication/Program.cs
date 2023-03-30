@@ -58,7 +58,8 @@ namespace Server
 
                         if (response.IsSuccessStatusCode)
                         {
-                            var responseBody = await response.Content.ReadAsStringAsync();
+                            byte[] responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
+                            string responseBody = Encoding.UTF8.GetString(responseBodyBytes);
                             Console.WriteLine(responseBody);
                         }
                         else
