@@ -7,12 +7,20 @@ namespace Server
 {
     class Program
     {
-        private const int PORT = 7777;
-        private static ConcurrentDictionary<int, TcpClient> clients = new ConcurrentDictionary<int, TcpClient>();
-        private static int clientIdCounter = 0;
+
+        const int PORT = 7777;
+        static ConcurrentDictionary<int, TcpClient> clients = new ConcurrentDictionary<int, TcpClient>();
+        static int clientIdCounter = 0;
+        static string logFile;
 
         static async Task Main(string[] args)
         {
+
+            string log = Path.Combine(Directory.GetCurrentDirectory(), "Log");
+            NewFolder(log, "LogFolder");
+            logFile = Path.Combine(log, "Log");
+            NewFile(logFile, "Log");
+
             TcpListener listener = new TcpListener(IPAddress.Any, PORT);
             listener.Start();
             Console.WriteLine($"Waiting for clients on port {PORT}...");
@@ -61,10 +69,20 @@ namespace Server
                             byte[] responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
                             string responseBody = Encoding.UTF8.GetString(responseBodyBytes);
                             Console.WriteLine(responseBody);
+
+                            string logMessage = $"[{DateTime.Now}] Received message from client {clientId}: {message}\n";
+                            logMessage += $"[{DateTime.Now}] Response from web API: {responseBody}\n";
+                            File.AppendAllText(logFile, logMessage);
+
                         }
                         else
                         {
                             Console.WriteLine($"Error: {response.StatusCode}");
+
+                            string logMessage = $"[{DateTime.Now}] Received message from client {clientId}: {message}\n";
+                            logMessage += $"[{DateTime.Now}] Error: {response.StatusCode}\n";
+                            File.AppendAllText(logFile, logMessage);
+
                         }
                     }
                 }
@@ -75,6 +93,33 @@ namespace Server
                 clients.TryRemove(clientId, out _);
                 Console.WriteLine($"Client {clientId} disconnected");
             }
+        }
+        static void NewFile(string path, string name)
+        {
+            if (File.Exists(path))
+            {
+                Console.WriteLine("중복된 파일 이름이 존재합니다.");
+            }
+            else
+            {
+                // 파일 생성
+                File.WriteAllText(path, "");
+                Console.WriteLine($"{name} 파일이 생성되었습니다.");
+            }
+        }
+        static void NewFolder(string path, string name)
+        {
+            if (!Directory.Exists(path))
+            {
+                // 폴더가 없는 경우 폴더 만들기
+                Directory.CreateDirectory(path);
+                Console.WriteLine($"New {name} folder created.");
+            }
+            else
+            {
+                Console.WriteLine($"{name} Folder already exists.");
+            }
+            Console.WriteLine($"{name} Folder path: " + path);
         }
     }
 }
